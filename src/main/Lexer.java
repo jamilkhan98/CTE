@@ -1,6 +1,10 @@
+package main;
 /* CECS 444 Compiler Construction
  * Project 1: Lexer
  * Authors: Aleks Dziewulska, Jamil Khan, Jessica Hilario, Josh Lorenzen
+ * Authors' emails (respectively): aleksandra.dziewulska@student.csulb.edu, jamil.khan@student.csulb.edu, 
+ *                                 jessica.hilario@student.csulb.edu, joshua.lorenzen@student.csulb.edu 
+ * Description: Lexer.java is a driver file for the Lexer of the A5 language compiler
  */
 
 import java.io.IOException;
@@ -11,55 +15,91 @@ import static java.lang.System.exit;
 
 public class Lexer {
 
-	static HashMap<String, Integer> keywords;
+	private static HashMap<String, Integer> keywords;
 	private static HashMap<Character, Integer> tokenLookup;
-	private static ArrayList<Token> tokens = new ArrayList<>();
-
-	private static int state = 1; // Represents our current state in the DFA
-	private static StringBuilder tokenText = new StringBuilder();
-	private static int line = 1; // Tracks line and column number for each token
-	private static int col = 1;
-
-	public static void main(String[] args) throws IOException {
-
+	static {
+		//Calling methods to initialize keywords and tokens
+		//that should be recognized by the lexer
 		keywordInitialize();
 		tokenInitialize();
+	}
 
-		int ci;
+	private ArrayList<Token> tokens = new ArrayList<>();
+	private int state = 1; // Represents our current state in the DFA
+	private StringBuilder tokenText = new StringBuilder();
+	private int line = 1; // Tracks line and column number for each token
+	private int col = 1;
 
-		// Read one character at a time from stdin until EOF
-		while ((ci = System.in.read()) != -1) { // -1 represents EOF
-		    char c = (char) ci; // read() returns an integer so we cast it to a character
-
-			nextState(c);
-
-			// Increment position counter for each character
-			col++;
-			// If we hit a newline increment line counter and reset position counter
-			if (c == '\n') {
-			    col = 1;
-			    line++;
-            }
-		}
-
-		// Add EOF token
-		tokens.add(new Token(0, line, col, ""));
-
+	public static void main(String[] args) throws IOException {
+		Lexer lexer = new Lexer();
 		// Output all the tokens
-		for(Token tok : tokens) {
+		for(Token tok : lexer.tokens) {
 			System.out.println(tok);
 		}
 	}
 
-	private static void nextState(char c) {
+	Lexer() throws IOException {
+		lexinput();
+	}
+
+	Lexer(String input) {
+		lexinput(input);
+	}
+
+	private void lexinput() throws IOException {
+		//Initialize int variable to store next character from system input
+		int ci;
+		// Read one character at a time from stdin until EOF
+		while ((ci = System.in.read()) != -1) { // -1 represents EOF
+			char c = (char) ci; // read() returns an integer so we cast it to a character
+			doLexLoop(c);
+		}
+		endLex();
+	}
+
+	private void lexinput(String input) {
+		for(char c : input.toCharArray()) {
+			doLexLoop(c);
+		}
+		endLex();
+	}
+
+	private void doLexLoop(char c) {
+		nextState(c); // Sending the character input to check the current lexer state
+		// Increment position counter for each character
+		col++;
+		// If we hit a newline increment line counter and reset position counter
+		if (c == '\n') {
+			col = 1;
+			line++;
+		}
+	}
+	private void endLex() {
+		// Send a space after the file has been read to make sure tokens in the middle of being read
+		// are accepted and added to the list of tokens
+		nextState(' ');
+		// Add EOF token
+		tokens.add(new Token(0, line, col, ""));
+	}
+
+	ArrayList<Token> getTokens() {
+		return tokens;
+	}
+
+	//Method to check the state by peeking ahead to next character and advancing if allowed
+	private void nextState(char c) {
 	    if (c == '\t' || c == '\r') {
 	        return; // ignore indentation
         }
 		if (c == '\n') {
-			if (state == 3) {
-				resetState(); // Throw the comment away
+			if (state == 1) {
+				return; // skip when we are in start state
 			}
-			return; // ignore newline
+			if (state == 3) {
+				resetState(); // Ignore the comment
+				return;
+			}
+//			return; // ignore newline
 		}
 		if (c == ' ') {
 			// Ignore spaces when we are in the start state
@@ -148,7 +188,7 @@ public class Lexer {
 					nextState(c);
 				}
 				break;
-			case 7:
+			case 7: //State after seeing a '>': Greater than or equal to or only greater than
 				if(c == '>')
 				{
 					tokenText.append(c);
@@ -165,7 +205,7 @@ public class Lexer {
 					nextState(c);
 				}
 				break;
-			case 10:
+			case 10: //State after seeing '<': Less than or equal to or only less than
 				if(c == '<')
 				{
 					tokenText.append(c);
@@ -258,7 +298,7 @@ public class Lexer {
                     tokenText.append(c);
                 }
 				break;
-			case 24:
+			case 24: //State after seeing "="
 				if(c == '=')
 				{
 					tokenText.append(c);
@@ -274,7 +314,7 @@ public class Lexer {
 
 	// Method for accepting identifiers and keywords specifically
     // checks if the identifier is a keyword and accepts the appropriate token
-	private static void acceptIdentifier() {
+	private void acceptIdentifier() {
 		Integer keywordID = keywords.get(tokenText.toString());
 		if (keywordID != null) {
 			// its a keyword, use the right tokenID
@@ -287,23 +327,26 @@ public class Lexer {
 	}
 
 	// Adds a new token to the output and resets the state
-	private static void acceptToken(int ID) {
+	private void acceptToken(int ID) {
 		Token newToken = new Token(ID, line, col, tokenText.toString());
 		tokens.add(newToken);
 		resetState();
 	}
 
-	private static void resetState() {
+	//Method to reset start state of lexer.
+	private void resetState() {
 		tokenText = new StringBuilder();
 		state = 1;
 	}
 
-	private static void tokenError() {
+	//Method to throw syntax errors for any tokens that are syntactically incorrect.
+	private void tokenError() {
 		System.out.println("Token syntax error: " + "lin: " + line + " col: " + col);
 		exit(0);
 	}
 
-	static void keywordInitialize()
+	//Method to place keywords that should be recognized by the lexer in a new HashMap.
+	private static void keywordInitialize()
 	{
 		keywords = new HashMap<>();
 		keywords.put("prog", 10);
@@ -324,6 +367,7 @@ public class Lexer {
 		keywords.put("var", 26);
 	}
 
+	//Method to place tokens that should be recognized by the lexer in a new HashMap.
 	private static void tokenInitialize() {
 		tokenLookup = new HashMap<>();
 		tokenLookup.put(',', 6);

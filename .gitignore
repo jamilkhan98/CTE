@@ -1,3 +1,21 @@
-# Ignore intellij files
-.idea
+# Package Files #
+*.jar
+
+# Ignore build files
 build
+bin
+.settings
+.vscode
+.classpath
+.project
+*.class
+
+
+### Gradle ###
+.gradle
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar

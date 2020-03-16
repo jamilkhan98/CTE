@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\.github",
+    "\\.idea",
+    "\\gradle",
+    "\\gradle\\wrapper",
+    "\\src",
+    "\\src\\main",
+    "\\src\\test",
+    "\\src\\test\\tests"
+  ],
+  "PreviewInSolutionExplorer": true
+}
